@@ -32,6 +32,7 @@ avaliações dentro do objeto do hotel.
 */
 
 
+
 const prompt = require('prompt-sync')();
 
 let hoteis = [];
@@ -56,7 +57,7 @@ function adicionarHotel() {
     cidade,
     quartosTotais,
     quartosDisponiveis: quartosTotais,
-    avaliacoes: [] // para desafio opcional
+    avaliacoes: []
   };
   hoteis.push(hotel);
   console.log(`Hotel "${nome}" adicionado com sucesso!`);
@@ -96,14 +97,14 @@ function fazerReserva() {
     return;
   }
 
-  // Criar reserva
   const reserva = {
     idReserva: proximoIdReserva++,
     idHotel: hotel.id,
-    nomeCliente
+    nomeCliente,
+    checkin: false,
+    checkout: false
   };
   reservas.push(reserva);
-
   hotel.quartosDisponiveis--;
   console.log(`Reserva feita com sucesso! ID da reserva: ${reserva.idReserva}`);
 }
@@ -121,7 +122,7 @@ function cancelarReserva() {
   const reserva = reservas[index];
   const hotel = hoteis.find(h => h.id === reserva.idHotel);
 
-  if (hotel) {
+  if (hotel && !reserva.checkout) {
     hotel.quartosDisponiveis++;
   }
 
@@ -138,7 +139,71 @@ function listarReservas() {
 
   reservas.forEach(r => {
     const hotel = hoteis.find(h => h.id === r.idHotel);
-    console.log(`ID Reserva: ${r.idReserva} | Cliente: ${r.nomeCliente} | Hotel: ${hotel ? hotel.nome : "Hotel não encontrado"} | Cidade: ${hotel ? hotel.cidade : "-"}`);
+    const status = r.checkout ? "Check-out" : r.checkin ? "Check-in" : "Pendente";
+    console.log(`ID Reserva: ${r.idReserva} | Cliente: ${r.nomeCliente} | Hotel: ${hotel?.nome} | Cidade: ${hotel?.cidade} | Status: ${status}`);
+  });
+}
+
+function fazerCheckin() {
+  console.log("\nCheck-in");
+  const idReserva = parseInt(prompt("Digite o ID da reserva: "));
+  const reserva = reservas.find(r => r.idReserva === idReserva);
+
+  if (!reserva || reserva.checkin) {
+    console.log("Reserva não encontrada ou já foi feito check-in.");
+    return;
+  }
+
+  reserva.checkin = true;
+  console.log("Check-in realizado com sucesso.");
+}
+
+function fazerCheckout() {
+  console.log("\nCheck-out");
+  const idReserva = parseInt(prompt("Digite o ID da reserva: "));
+  const reserva = reservas.find(r => r.idReserva === idReserva);
+
+  if (!reserva || !reserva.checkin || reserva.checkout) {
+    console.log("Check-in não realizado ou check-out já feito.");
+    return;
+  }
+
+  reserva.checkout = true;
+  const hotel = hoteis.find(h => h.id === reserva.idHotel);
+  if (hotel) {
+    hotel.quartosDisponiveis++;
+  }
+
+  console.log("Check-out realizado com sucesso.");
+}
+
+function avaliarHotel() {
+  console.log("\nAvaliar hotel");
+  const idHotel = parseInt(prompt("Digite o ID do hotel: "));
+  const hotel = hoteis.find(h => h.id === idHotel);
+
+  if (!hotel) {
+    console.log("Hotel não encontrado.");
+    return;
+  }
+
+  const nota = parseFloat(prompt("Digite uma nota de 0 a 10: "));
+  if (isNaN(nota) || nota < 0 || nota > 10) {
+    console.log("Nota inválida.");
+    return;
+  }
+
+  hotel.avaliacoes.push(nota);
+  console.log("Avaliação registrada com sucesso.");
+}
+
+function relatorioOcupacao() {
+  console.log("\nRelatório de Ocupação");
+  hoteis.forEach(h => {
+    const ocupados = h.quartosTotais - h.quartosDisponiveis;
+    const percentual = ((ocupados / h.quartosTotais) * 100).toFixed(1);
+    const media = h.avaliacoes.length ? (h.avaliacoes.reduce((a, b) => a + b) / h.avaliacoes.length).toFixed(1) : "Sem avaliações";
+    console.log(`Hotel: ${h.nome} | Ocupação: ${ocupados}/${h.quartosTotais} (${percentual}%) | Média Avaliações: ${media}`);
   });
 }
 
@@ -149,6 +214,10 @@ function menu() {
   console.log("3 - Fazer reserva");
   console.log("4 - Cancelar reserva");
   console.log("5 - Listar reservas");
+  console.log("6 - Fazer check-in");
+  console.log("7 - Fazer check-out");
+  console.log("8 - Avaliar hotel");
+  console.log("9 - Relatório de ocupação");
   console.log("0 - Sair");
 }
 
@@ -159,29 +228,20 @@ function main() {
     opcao = prompt("Escolha uma opção: ").trim();
 
     switch (opcao) {
-      case "1":
-        adicionarHotel();
-        break;
-      case "2":
-        buscarHoteisPorCidade();
-        break;
-      case "3":
-        fazerReserva();
-        break;
-      case "4":
-        cancelarReserva();
-        break;
-      case "5":
-        listarReservas();
-        break;
-      case "0":
-        console.log("Saindo do sistema...");
-        break;
-      default:
-        console.log("Opção inválida. Tente novamente.");
+      case "1": adicionarHotel(); break;
+      case "2": buscarHoteisPorCidade(); break;
+      case "3": fazerReserva(); break;
+      case "4": cancelarReserva(); break;
+      case "5": listarReservas(); break;
+      case "6": fazerCheckin(); break;
+      case "7": fazerCheckout(); break;
+      case "8": avaliarHotel(); break;
+      case "9": relatorioOcupacao(); break;
+      case "0": console.log("Saindo..."); break;
+      default: console.log("Opção inválida.");
     }
   } while (opcao !== "0");
 }
 
-// Executa o sistema
 main();
+
